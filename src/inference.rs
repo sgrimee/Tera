@@ -25,7 +25,11 @@ pub fn load_model() -> Result<(QMixFormer, Tokenizer)> {
 
     let tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(E::msg)?;
     let config = Config::v2();
-    let vb = candle_transformers::quantized_var_builder::VarBuilder::from_gguf(&weights_filename)?;
+    let device = Device::Cpu;
+    let vb = candle_transformers::quantized_var_builder::VarBuilder::from_gguf(
+        &weights_filename,
+        &device,
+    )?;
     let model = QMixFormer::new_v2(&config, vb)?;
 
     Ok((model, tokenizer))
