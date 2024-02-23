@@ -18,11 +18,14 @@ lazy_static! {
 }
 
 #[allow(dead_code)]
+#[derive(Clone, Debug)]
 pub enum Model {
     Phi2,
     Mixtral8x7b,
 }
 
+// NB: quantized models do not work on cuda
+// https://github.com/huggingface/candle/issues/1250
 fn select_model(model: Model) -> (String, String, String) {
     println!("Using model: {:?}", model);
     match model {

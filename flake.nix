@@ -3,7 +3,10 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    rust-overlay.url = "github:oxalica/rust-overlay";
+    fenix = {
+      url = "github:nix-community/fenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     flake-utils = {
       url = "github:numtide/flake-utils";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -13,7 +16,7 @@
   outputs = {
     self,
     nixpkgs,
-    rust-overlay,
+    fenix,
     flake-utils,
     ...
   }:
@@ -22,33 +25,48 @@
         pkgs = import nixpkgs {
           inherit system;
           overlays = [
-            (import rust-overlay)
+            fenix.overlays.default
           ];
+          config.allowUnfree = true;
+          config.cudaSupport = true;
         };
+
+        toolchain = with fenix.packages.${system}; fromToolchainFile {
+          file = ./rust-toolchain.toml; # alternatively, dir = ./.;
+          sha256 = "sha256-e4mlaJehWBymYxJGgnbuCObVlqMlQSilZ8FljG9zPHY=";
+        };
+
       in {
-        devShell = pkgs.mkShell {
+        devShell = pkgs.mkShell.override { stdenv = pkgs.gcc12Stdenv; } {
+
+          # build environment
           nativeBuildInputs = with pkgs; [
-            (pkgs.rust-bin.stable.latest.complete.override {
-              extensions = ["rust-src" "cargo" "rustc"];
-            })
-            clang
+            # clang
             openssl.dev
             pkg-config
-          ];
+            toolchain
+          ]
+          ++ lib.optionals pkgs.stdenv.isLinux
+            [
+              cudaPackages.cudatoolkit
+              cudaPackages.cudnn
+              linuxPackages.nvidia_x11
+            ];
 
-          RUST_SRC_PATH = "${pkgs.rust-bin.stable.latest.default.override {
-            extensions = ["rust-src"];
-          }}/lib/rustlib/src/rust/library";
-
+          # runtime environment
           buildInputs = with pkgs;
             [
+              toolchain
               bacon
               clippy
-              git-cliff
-              rust-analyzer
+              # git-cliff
+              rust-analyzer-nightly
+
+              # python311
+              # python311Packages.pip
+              # python311Packages.virtualenv
             ]
             ++ lib.optionals pkgs.stdenv.isDarwin [
-              # Additional darwin specific inputs can be set here
               pkgs.libiconv
               pkgs.darwin.apple_sdk.frameworks.Metal
               pkgs.darwin.apple_sdk.frameworks.MetalPerformanceShaders
@@ -56,6 +74,12 @@
               pkgs.darwin.apple_sdk.frameworks.CoreServices
               pkgs.darwin.apple_sdk.frameworks.SystemConfiguration
             ];
+          
+          shellHook = ''
+              export LD_LIBRARY_PATH="${pkgs.linuxPackages.nvidia_x11}/lib"
+          '';
+
+          CUDA_ROOT = "${pkgs.cudatoolkit}";
         };
 
         defaultPackage = pkgs.mkRustPackage {
