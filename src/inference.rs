@@ -31,9 +31,9 @@ fn select_model(model: Model) -> (String, String, String) {
             "model-q4k.gguf".to_string(),
         ),
         Model::Mixtral8x7b => (
-            "TheBloke/dolphin-2.5-mixtral-8x7b-GGUF".to_string(),
-            "config.json".to_string(),
-            "dolphin-2.5-mixtral-8x7b.Q8_0.gguf".to_string(),
+            "mistralai/Mixtral-8x7B-v0.1".to_string(),
+            "tokenizer.json".to_string(), // FIXME: This is not the correct tokenizer file
+            "dolphin-2.6-mixtral-8x7b.Q8_0.gguf".to_string(),
         ),
     }
 }
