@@ -1,4 +1,6 @@
 // Adopted from https://github.com/huggingface/candle/blob/96f1a28e390fceeaa12b3272c8ac5dcccc8eb5fa/candle-examples/examples/phi/main.rs
+use crate::database::VectorIndex;
+use crate::utils::device;
 use anyhow::{Error as E, Result};
 use candle_core::{DType, Device, Tensor};
 use candle_transformers::generation::LogitsProcessor;
@@ -9,24 +11,45 @@ use lazy_static::lazy_static;
 use serde_json::json;
 use tokenizers::Tokenizer;
 use tracing::debug;
-use crate::database::VectorIndex;
-use crate::utils::device;
 
 lazy_static! {
-    pub static ref PHI: (QMixFormer, Tokenizer) = load_model().expect("Unable to load model");
+    pub static ref PHI: (QMixFormer, Tokenizer) =
+        load_model(Model::Phi2).expect("Unable to load model");
 }
 
+#[allow(dead_code)]
+pub enum Model {
+    Phi2,
+    Mixtral8x7b,
+}
 
-pub fn load_model() -> Result<(QMixFormer, Tokenizer)> {
-    let api = Api::new()?.repo(Repo::model(
-        "Demonthos/dolphin-2_6-phi-2-candle".to_string(),
-    ));
-    let tokenizer_filename = api.get("tokenizer.json")?;
-    let weights_filename = api.get("model-q4k.gguf")?;
+fn select_model(model: Model) -> (String, String, String) {
+    match model {
+        Model::Phi2 => (
+            "Demonthos/dolphin-2_6-phi-2-candle".to_string(),
+            "tokenizer.json".to_string(),
+            "model-q4k.gguf".to_string(),
+        ),
+        Model::Mixtral8x7b => (
+            "TheBloke/dolphin-2.5-mixtral-8x7b-GGUF".to_string(),
+            "tokenizer.json".to_string(),
+            "dolphin-2.5-mixtral-8x7b.Q8_0.gguf".to_string(),
+        ),
+    }
+}
+
+pub fn load_model(model: Model) -> Result<(QMixFormer, Tokenizer)> {
+    let (model, tokenizer, weights) = select_model(model);
+    let api = Api::new()?.repo(Repo::model(model));
+    let tokenizer_filename = api.get(&tokenizer)?;
+    let weights_filename = api.get(&weights)?;
 
     let tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(E::msg)?;
     let config = Config::v2();
-    let vb = candle_transformers::quantized_var_builder::VarBuilder::from_gguf(&weights_filename, &device(false)?)?;
+    let vb = candle_transformers::quantized_var_builder::VarBuilder::from_gguf(
+        &weights_filename,
+        &device(false)?,
+    )?;
     let model = QMixFormer::new_v2(&config, vb)?;
 
     Ok((model, tokenizer))
