@@ -5,9 +5,15 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.75"
-candle-core = { git = "https://github.com/huggingface/candle", branch = "main" }
-candle-transformers = { git = "https://github.com/huggingface/candle", branch = "main" }
-candle-nn = { git = "https://github.com/huggingface/candle", branch = "main" }
+candle-core = { git = "https://github.com/huggingface/candle", branch = "main", features = [
+    "metal",
+] }
+candle-transformers = { git = "https://github.com/huggingface/candle", branch = "main", features = [
+    "metal",
+] }
+candle-nn = { git = "https://github.com/huggingface/candle", branch = "main", features = [
+    "metal",
+] }
 tokenizers = "0.15.0"
 tokio = { version = "1", features = ["full", "macros", "rt-multi-thread"] }
 tracing = "0.1"

@@ -50,6 +50,8 @@
             ++ lib.optionals pkgs.stdenv.isDarwin [
               # Additional darwin specific inputs can be set here
               pkgs.libiconv
+              pkgs.darwin.apple_sdk.frameworks.Metal
+              pkgs.darwin.apple_sdk.frameworks.MetalPerformanceShaders
               pkgs.darwin.apple_sdk.frameworks.Security
               pkgs.darwin.apple_sdk.frameworks.CoreServices
               pkgs.darwin.apple_sdk.frameworks.SystemConfiguration
