@@ -24,6 +24,7 @@ pub enum Model {
 }
 
 fn select_model(model: Model) -> (String, String, String) {
+    println!("Using model: {:?}", model);
     match model {
         Model::Phi2 => (
             "Demonthos/dolphin-2_6-phi-2-candle".to_string(),
