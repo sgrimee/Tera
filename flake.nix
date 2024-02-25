@@ -31,22 +31,22 @@
           config.cudaSupport = true;
         };
 
-        toolchain = with fenix.packages.${system}; fromToolchainFile {
-          file = ./rust-toolchain.toml; # alternatively, dir = ./.;
-          sha256 = "sha256-e4mlaJehWBymYxJGgnbuCObVlqMlQSilZ8FljG9zPHY=";
-        };
-
+        toolchain = with fenix.packages.${system};
+          fromToolchainFile {
+            file = ./rust-toolchain.toml; # alternatively, dir = ./.;
+            sha256 = "sha256-e4mlaJehWBymYxJGgnbuCObVlqMlQSilZ8FljG9zPHY=";
+          };
       in {
-        devShell = pkgs.mkShell.override { stdenv = pkgs.gcc12Stdenv; } {
-
+        devShell = pkgs.mkShell.override {stdenv = pkgs.gcc12Stdenv;} {
           # build environment
-          nativeBuildInputs = with pkgs; [
-            # clang
-            openssl.dev
-            pkg-config
-            toolchain
-          ]
-          ++ lib.optionals pkgs.stdenv.isLinux
+          nativeBuildInputs = with pkgs;
+            [
+              # clang
+              openssl.dev
+              pkg-config
+              toolchain
+            ]
+            ++ lib.optionals pkgs.stdenv.isLinux
             [
               cudaPackages.cudatoolkit
               cudaPackages.cudnn
@@ -60,7 +60,7 @@
               bacon
               clippy
               # git-cliff
-              rust-analyzer-nightly
+              rust-analyzer
 
               # python311
               # python311Packages.pip
@@ -74,12 +74,22 @@
               pkgs.darwin.apple_sdk.frameworks.CoreServices
               pkgs.darwin.apple_sdk.frameworks.SystemConfiguration
             ];
-          
-          shellHook = ''
-              export LD_LIBRARY_PATH="${pkgs.linuxPackages.nvidia_x11}/lib"
-          '';
 
-          CUDA_ROOT = "${pkgs.cudatoolkit}";
+          shellHook =
+            if pkgs.stdenv.isLinux
+            then ''
+              export LD_LIBRARY_PATH="${pkgs.linuxPackages.nvidia_x11}/lib"
+            ''
+            else '''';
+
+          CUDA_ROOT =
+            if pkgs.stdenv.isLinux
+            then "${pkgs.cudaPackages.cudatoolkit}"
+            else "";
+          CUDNN_LIB =
+            if pkgs.stdenv.isLinux
+            then "${pkgs.cudaPackages.cudnn}"
+            else "";
         };
 
         defaultPackage = pkgs.mkRustPackage {
